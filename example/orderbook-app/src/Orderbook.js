@@ -9,13 +9,6 @@ const Orderbook = () => {
   const lastSeqRef = useRef(0);
 
   useEffect(() => {
-    // Check if a WebSocket connection already exists
-    if (centrifugeRef.current) {
-      console.log("WebSocket connection already exists.");
-      return;
-    }
-
-    // Initialize Centrifuge with the WebSocket URL and token
     const centrifuge = new Centrifuge(
       "wss://api.testnet.rabbitx.io/ws", // Use 'wss' for secure connection
       {
@@ -27,22 +20,21 @@ const Orderbook = () => {
 
     centrifugeRef.current = centrifuge;
 
-    // Subscribe to the orderbook channel
     const subscription = centrifuge.newSubscription("orderbook:BTC-USD");
 
-    // Handle incoming WebSocket publications
     subscription.on("publication", (ctx) => {
       console.log("Publication received:", ctx);
       const data = ctx.data;
       setRawData(data); // Store the raw data to display in the UI
       console.log("Received Data:", data);
-
-      // Skip old or duplicate updates based on sequence number
       if (data.sequence <= lastSeqRef.current) {
-        console.log("Skipping old or duplicate update.");
-        return;
+        return; // Skip old or duplicate updates
       }
       lastSeqRef.current = data.sequence;
+
+      // Enhanced debugging: Inspect the structure of bids and asks
+      console.log("Bids Array:", data.bids);
+      console.log("Asks Array:", data.asks);
 
       // Convert the bids and asks arrays to objects for easier processing
       const parsedBids = data.bids.map(([price, size]) => ({ price, size }));
@@ -51,7 +43,6 @@ const Orderbook = () => {
       console.log("Parsed Bids:", parsedBids);
       console.log("Parsed Asks:", parsedAsks);
 
-      // Merge the new bids and asks with the existing ones
       setBids((prevBids) => {
         const mergedBids = mergeOrderbook(prevBids, parsedBids);
         console.log("Merged Bids:", mergedBids);
@@ -65,26 +56,21 @@ const Orderbook = () => {
       });
     });
 
-    // Handle subscription errors
     subscription.on("error", (error) => {
       console.error("Subscription error:", error);
     });
 
-    // Handle Centrifuge errors
     centrifuge.on("error", (error) => {
       console.error("Centrifuge error:", error);
     });
 
-    // Subscribe and connect to the WebSocket
     subscription.subscribe();
     centrifuge.connect();
 
-    // Handle WebSocket connection events
     centrifuge.on("connected", () => {
       console.log("Connected to WebSocket");
     });
 
-    // Handle WebSocket disconnection events
     centrifuge.on("disconnected", (ctx) => {
       console.log("Disconnected from WebSocket", ctx);
       subscription.unsubscribe();
@@ -92,7 +78,6 @@ const Orderbook = () => {
       reconnect();
     });
 
-    // Reconnect function to handle reconnections
     const reconnect = () => {
       setTimeout(() => {
         console.log("Attempting to reconnect...");
@@ -100,14 +85,12 @@ const Orderbook = () => {
       }, 3000); // Reconnect after 3 seconds
     };
 
-    // Cleanup function to unsubscribe and disconnect on component unmount
     return () => {
       subscription.unsubscribe();
       centrifuge.disconnect();
     };
   }, []);
 
-  // Function to merge the current orderbook with updates
   const mergeOrderbook = (current, updates) => {
     const updatedOrderbook = [...current];
 
