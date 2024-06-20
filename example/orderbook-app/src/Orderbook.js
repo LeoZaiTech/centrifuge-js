@@ -10,12 +10,33 @@ const Orderbook = () => {
   const centrifugeRef = useRef(null);
   const lastSeqRef = useRef(0);
 
+  // Function to merge the new updates into the existing orderbook
+  const mergeOrderbook = (current, updates) => {
+    const updatedOrderbook = [...current];
+
+    updates.forEach((update) => {
+      const index = updatedOrderbook.findIndex((item) => item.price === update.price);
+      if (update.size === 0) {
+        if (index !== -1) {
+          updatedOrderbook.splice(index, 1); // Remove the item if size is 0
+        }
+      } else {
+        if (index !== -1) {
+          updatedOrderbook[index] = update; // Update existing item
+        } else {
+          updatedOrderbook.push(update); // Add new item
+        }
+      }
+    });
+
+    return updatedOrderbook.sort((a, b) => b.price - a.price); // Sort orderbook by price
+  };
+
   useEffect(() => {
     const centrifuge = new Centrifuge(
       "wss://api.testnet.rabbitx.io/ws", // Use 'wss' for secure connection
       {
-        token:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwIiwiZXhwIjo1MjYyNjUyMDEwfQ.x_245iYDEvTTbraw1gt4jmFRFfgMJb-GJ-hsU9HuDik",
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwIiwiZXhwIjo1MjYyNjUyMDEwfQ.x_245iYDEvTTbraw1gt4jmFRFfgMJb-GJ-hsU9HuDik",
         debug: true,
       }
     );
@@ -25,20 +46,15 @@ const Orderbook = () => {
     const subscription = centrifuge.newSubscription("orderbook:BTC-USD");
 
     subscription.on("publication", (ctx) => {
-      console.log("Publication received:", ctx);
       const data = ctx.data;
       setRawData(data); // Store the raw data to display in the UI
       setMarketId(data.market_id); // Set market ID
       setSequence(data.sequence); // Set sequence number
-      console.log("Received Data:", data);
+
       if (data.sequence <= lastSeqRef.current) {
         return; // Skip old or duplicate updates
       }
       lastSeqRef.current = data.sequence;
-
-      // Enhanced debugging: Inspect the structure of bids and asks
-      console.log("Bids Array:", data.bids);
-      console.log("Asks Array:", data.asks);
 
       // Convert the bids and asks arrays to objects for easier processing
       const parsedBids = data.bids.map(([price, size]) => ({
@@ -54,20 +70,8 @@ const Orderbook = () => {
         sequence: data.sequence,
       }));
 
-      console.log("Parsed Bids:", parsedBids);
-      console.log("Parsed Asks:", parsedAsks);
-
-      setBids((prevBids) => {
-        const mergedBids = mergeOrderbook(prevBids, parsedBids);
-        console.log("Merged Bids:", mergedBids);
-        return mergedBids;
-      });
-
-      setAsks((prevAsks) => {
-        const mergedAsks = mergeOrderbook(prevAsks, parsedAsks);
-        console.log("Merged Asks:", mergedAsks);
-        return mergedAsks;
-      });
+      setBids((prevBids) => mergeOrderbook(prevBids, parsedBids));
+      setAsks((prevAsks) => mergeOrderbook(prevAsks, parsedAsks));
     });
 
     subscription.on("error", (error) => {
@@ -105,29 +109,6 @@ const Orderbook = () => {
     };
   }, []);
 
-  const mergeOrderbook = (current, updates) => {
-    const updatedOrderbook = [...current];
-
-    updates.forEach((update) => {
-      const index = updatedOrderbook.findIndex(
-        (item) => item.price === update.price
-      );
-      if (update.size === 0) {
-        if (index !== -1) {
-          updatedOrderbook.splice(index, 1);
-        }
-      } else {
-        if (index !== -1) {
-          updatedOrderbook[index] = update;
-        } else {
-          updatedOrderbook.push(update);
-        }
-      }
-    });
-
-    return updatedOrderbook.sort((a, b) => b.price - a.price);
-  };
-
   return (
     <div>
       <h2>Orderbook</h2>
@@ -140,8 +121,7 @@ const Orderbook = () => {
             ) : (
               bids.map((bid, index) => (
                 <li key={index}>
-                  Price: {bid.price}, Size: {bid.size}, Market ID:{" "}
-                  {bid.marketId}, Sequence: {bid.sequence}
+                  Price: {bid.price}, Size: {bid.size}, Market ID: {bid.marketId}, Sequence: {bid.sequence}
                 </li>
               ))
             )}
@@ -155,8 +135,7 @@ const Orderbook = () => {
             ) : (
               asks.map((ask, index) => (
                 <li key={index}>
-                  Price: {ask.price}, Size: {ask.size}, Market ID:{" "}
-                  {ask.marketId}, Sequence: {ask.sequence}
+                  Price: {ask.price}, Size: {ask.size}, Market ID: {ask.marketId}, Sequence: {ask.sequence}
                 </li>
               ))
             )}
