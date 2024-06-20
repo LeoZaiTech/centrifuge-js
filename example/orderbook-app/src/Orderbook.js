@@ -1,7 +1,3 @@
-//Back up
-
-//Most Updated and Functioning Solution
-
 import React, { useEffect, useState, useRef } from "react";
 import { Centrifuge } from "centrifuge";
 
@@ -9,6 +5,8 @@ const Orderbook = () => {
   const [bids, setBids] = useState([]);
   const [asks, setAsks] = useState([]);
   const [rawData, setRawData] = useState(null);
+  const [marketId, setMarketId] = useState("");
+  const [sequence, setSequence] = useState(0);
   const centrifugeRef = useRef(null);
   const lastSeqRef = useRef(0);
 
@@ -30,6 +28,8 @@ const Orderbook = () => {
       console.log("Publication received:", ctx);
       const data = ctx.data;
       setRawData(data); // Store the raw data to display in the UI
+      setMarketId(data.market_id); // Set market ID
+      setSequence(data.sequence); // Set sequence number
       console.log("Received Data:", data);
       if (data.sequence <= lastSeqRef.current) {
         return; // Skip old or duplicate updates
@@ -155,10 +155,13 @@ const Orderbook = () => {
         <h3>Raw Data</h3>
         <pre>{JSON.stringify(rawData, null, 2)}</pre>
       </div>
+      <div className="additional-info">
+        <h3>Additional Info</h3>
+        <p>Market ID: {marketId}</p>
+        <p>Sequence: {sequence}</p>
+      </div>
     </div>
   );
 };
 
 export default Orderbook;
-
-//Most Updated and Functioning Solution
