@@ -1,5 +1,3 @@
-//Most Updated and Functioning Solution
-
 import React, { useEffect, useState, useRef } from "react";
 import { Centrifuge } from "centrifuge";
 
@@ -158,5 +156,3 @@ const Orderbook = () => {
 };
 
 export default Orderbook;
-
-//Most Updated and Functioning Solution
