@@ -41,8 +41,18 @@ const Orderbook = () => {
       console.log("Asks Array:", data.asks);
 
       // Convert the bids and asks arrays to objects for easier processing
-      const parsedBids = data.bids.map(([price, size]) => ({ price, size }));
-      const parsedAsks = data.asks.map(([price, size]) => ({ price, size }));
+      const parsedBids = data.bids.map(([price, size]) => ({
+        price,
+        size,
+        marketId: data.market_id,
+        sequence: data.sequence,
+      }));
+      const parsedAsks = data.asks.map(([price, size]) => ({
+        price,
+        size,
+        marketId: data.market_id,
+        sequence: data.sequence,
+      }));
 
       console.log("Parsed Bids:", parsedBids);
       console.log("Parsed Asks:", parsedAsks);
@@ -130,7 +140,8 @@ const Orderbook = () => {
             ) : (
               bids.map((bid, index) => (
                 <li key={index}>
-                  Price: {bid.price}, Size: {bid.size}
+                  Price: {bid.price}, Size: {bid.size}, Market ID:{" "}
+                  {bid.marketId}, Sequence: {bid.sequence}
                 </li>
               ))
             )}
@@ -144,7 +155,8 @@ const Orderbook = () => {
             ) : (
               asks.map((ask, index) => (
                 <li key={index}>
-                  Price: {ask.price}, Size: {ask.size}
+                  Price: {ask.price}, Size: {ask.size}, Market ID:{" "}
+                  {ask.marketId}, Sequence: {ask.sequence}
                 </li>
               ))
             )}
@@ -154,11 +166,6 @@ const Orderbook = () => {
       <div className="raw-data">
         <h3>Raw Data</h3>
         <pre>{JSON.stringify(rawData, null, 2)}</pre>
-      </div>
-      <div className="additional-info">
-        <h3>Additional Info</h3>
-        <p>Market ID: {marketId}</p>
-        <p>Sequence: {sequence}</p>
       </div>
     </div>
   );
